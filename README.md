@@ -44,6 +44,7 @@ var MyTastypieCollection = Backbone.Collection.extend(Backbone.TastypieMixin.Col
     prop1: val1,
     ...
 });
+```
 
 ## How it works
 
