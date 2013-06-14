@@ -11,7 +11,7 @@ root_dir = os.path.dirname(__file__)
 if root_dir:
     os.chdir(root_dir)
 
-for dirpath, dirnames, filenames in os.walk('backbone_tastypie'):
+for dirpath, dirnames, filenames in os.walk('backbone_tastypie_mixin'):
     # Ignore dirnames that start with '.'
     for i, dirname in enumerate(dirnames):
         if dirname.startswith('.'): del dirnames[i]
@@ -21,18 +21,18 @@ for dirpath, dirnames, filenames in os.walk('backbone_tastypie'):
             pkg = pkg.replace(os.path.altsep, '.')
         packages.append(pkg)
     elif filenames:
-        prefix = dirpath[len('backbone_tastypie/'):] # Strip "backbone_tastypie/"
+        prefix = dirpath[len('backbone_tastypie_mixin/'):] # Strip "backbone_tastypie_mixin/"
         for f in filenames:
             data_files.append(os.path.join(prefix, f))
 print data_files
 setup(
-    name='Backbone-tastypie',
+    name='Backbone-tastypie-mixin',
     version='0.2',
     description='A small conversion layer to make backbone.js and '
-        'django-tastypie work together happily.',
+        'django-tastypie work together happily. Modified from backbone_tastypie by Ben Best',
     author='Paul Uithol',
     author_email='paul.uithol@gmail.com',
-    url='https://github.com/PaulUithol',
-    packages=['backbone_tastypie'],
-    package_data={'backbone_tastypie': data_files},
+    url='https://github.com/azundo/backbone-tastypie-mixin',
+    packages=['backbone_tastypie_mixin'],
+    package_data={'backbone_tastypie_mixin': data_files},
 )

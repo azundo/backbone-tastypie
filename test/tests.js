@@ -61,7 +61,7 @@ $(document).ready(function() {
 		return request;
 	};
 	
-	window.Zoo = Backbone.RelationalModel.extend({
+	window.Zoo = Backbone.RelationalModel.extend(Backbone.TastypieMixin.ModelMixin).extend({
 		relations: [{
 				type: Backbone.HasMany,
 				key: 'animals',
@@ -73,17 +73,17 @@ $(document).ready(function() {
 			}]
 	});
 	
-	window.Animal = Backbone.RelationalModel.extend({
+	window.Animal = Backbone.RelationalModel.extend(Backbone.TastypieMixin.ModelMixin).extend({
 		urlRoot: '/animal' // Missing final '/' on purpose.
 	});
 	
-	window.AnimalCollection = Backbone.Collection.extend({
+	window.AnimalCollection = Backbone.Collection.extend(Backbone.TastypieMixin.CollectionMixin).extend({
 		urlRoot: '/animal', // Missing final '/' on purpose.
 		model: Animal
 	});
 	
 	// Model without a 'urlRoot'
-	window.Person = Backbone.RelationalModel.extend({});
+	window.Person = Backbone.RelationalModel.extend(Backbone.TastypieMixin.ModelMixin).extend({});
 	
 	function initObjects() {
 		Backbone.Tastypie = {
@@ -416,7 +416,8 @@ $(document).ready(function() {
 
 			// If the model doesn't have an 'urlRoot' and no value for it's 'idAttribute', the collection's
 			// 'urlRoot' is be used as a fallback ( a POST there creates a resource).
-			var coll = new Backbone.Collection();
+      var Coll = Backbone.Collection.extend(Backbone.TastypieMixin.CollectionMixin);
+			var coll = new Coll;
 			coll.urlRoot = '/persons';
 			person.collection = coll;
 			equal( person.url(), '/persons/' );

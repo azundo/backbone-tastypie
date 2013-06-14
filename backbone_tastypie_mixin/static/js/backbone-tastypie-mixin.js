@@ -31,13 +31,15 @@
 		csrfToken: ''
 	};
 
+  // Container for Mixins
+  Backbone.TastypieMixin = {};
+
 	/**
 	 * Override Backbone's sync function, to do a GET upon receiving a HTTP CREATED.
 	 * This requires 2 requests to do a create, so you may want to use some other method in production.
 	 * Modified from http://joshbohde.com/blog/backbonejs-and-django
 	 */
-	Backbone.oldSync = Backbone.sync;
-	Backbone.sync = function( method, model, options ) {
+	Backbone.TastypieMixin.sync = function( method, model, options ) {
 		var headers = {};
 
 		if ( Backbone.Tastypie.apiKey && Backbone.Tastypie.apiKey.username ) {
@@ -90,75 +92,81 @@
 			};
 
 			// Create the request, and make it accessibly by assigning it to the 'request' property on the deferred
-			dfd.request = Backbone.oldSync( method, model, options );
+			dfd.request = Backbone.sync( method, model, options );
 			return dfd;
 		}
 
-		return Backbone.oldSync( method, model, options );
+		return Backbone.sync( method, model, options );
 	};
 
-	Backbone.Model.prototype.idAttribute = 'resource_uri';
+  Backbone.TastypieMixin.ModelMixin = {
+    idAttribute: 'resource_uri',
 
-	Backbone.Model.prototype.url = function() {
-		// Use the id if possible
-		var url = this.id;
+	  url: function() {
+		  // Use the id if possible
+		  var url = this.id;
 
-		// If there's no idAttribute, use the 'urlRoot'. Fallback to try to have the collection construct a url.
-		// Explicitly add the 'id' attribute if the model has one.
-		if ( !url ) {
-			url = _.isFunction( this.urlRoot ) ? this.urlRoot() : this.urlRoot;
-			url = url || this.collection && ( _.isFunction( this.collection.url ) ? this.collection.url() : this.collection.url );
+		  // If there's no idAttribute, use the 'urlRoot'. Fallback to try to have the collection construct a url.
+		  // Explicitly add the 'id' attribute if the model has one.
+		  if ( !url ) {
+		  	url = _.isFunction( this.urlRoot ) ? this.urlRoot() : this.urlRoot;
+		  	url = url || this.collection && ( _.isFunction( this.collection.url ) ? this.collection.url() : this.collection.url );
 
-			if ( url && this.has( 'id' ) ) {
-				url = addSlash( url ) + this.get( 'id' );
-			}
-		}
+		  	if ( url && this.has( 'id' ) ) {
+		  		url = addSlash( url ) + this.get( 'id' );
+		  	}
+		  }
 
-		url = url && addSlash( url );
+		  url = url && addSlash( url );
 
-		return url || null;
-	};
+		  return url || null;
+	  },
 
-	/**
-	 * Return the first entry in 'data.objects' if it exists and is an array, or else just plain 'data'.
-	 */
-	Backbone.Model.prototype.parse = function( data ) {
-		return data && data.objects && ( _.isArray( data.objects ) ? data.objects[ 0 ] : data.objects ) || data;
-	};
+	  /**
+	   * Return the first entry in 'data.objects' if it exists and is an array, or else just plain 'data'.
+	   */
+	  parse: function( data ) {
+		  return data && data.objects && ( _.isArray( data.objects ) ? data.objects[ 0 ] : data.objects ) || data;
+    },
+    sync: Backbone.TastypieMixin.sync
+  };
 
-	/**
-	 * Return 'data.objects' if it exists.
-	 * If present, the 'data.meta' object is assigned to the 'collection.meta' var.
-	 */
-	Backbone.Collection.prototype.parse = function( data ) {
-		if ( data && data.meta ) {
-			this.meta = data.meta;
-		}
+  Backbone.TastypieMixin.CollectionMixin = {
+	  /**
+	   * Return 'data.objects' if it exists.
+	   * If present, the 'data.meta' object is assigned to the 'collection.meta' var.
+	   */
+    parse: function( data ) {
+  		if ( data && data.meta ) {
+  			this.meta = data.meta;
+  		}
+  
+  		return data && data.objects || data;
+  	},
 
-		return data && data.objects || data;
-	};
+    url: function( models ) {
+		  var url = _.isFunction( this.urlRoot ) ? this.urlRoot() : this.urlRoot;
+		  // If the collection doesn't specify an url, try to obtain one from a model in the collection
+		  if ( !url ) {
+		  	var model = models && models.length && models[ 0 ];
+		  	url = model && ( _.isFunction( model.urlRoot ) ? model.urlRoot() : model.urlRoot );
+		  }
+		  url = url && addSlash( url );
 
-	Backbone.Collection.prototype.url = function( models ) {
-		var url = _.isFunction( this.urlRoot ) ? this.urlRoot() : this.urlRoot;
-		// If the collection doesn't specify an url, try to obtain one from a model in the collection
-		if ( !url ) {
-			var model = models && models.length && models[ 0 ];
-			url = model && ( _.isFunction( model.urlRoot ) ? model.urlRoot() : model.urlRoot );
-		}
-		url = url && addSlash( url );
+		  // Build a url to retrieve a set of models. This assume the last part of each model's idAttribute
+		  // (set to 'resource_uri') contains the model's id.
+		  if ( models && models.length ) {
+		  	var ids = _.map( models, function( model ) {
+		  		var parts = _.compact( model.id.split( '/' ) );
+		  		return parts[ parts.length - 1 ];
+		  	});
+		  	url += 'set/' + ids.join( ';' ) + '/';
+		  }
 
-		// Build a url to retrieve a set of models. This assume the last part of each model's idAttribute
-		// (set to 'resource_uri') contains the model's id.
-		if ( models && models.length ) {
-			var ids = _.map( models, function( model ) {
-				var parts = _.compact( model.id.split( '/' ) );
-				return parts[ parts.length - 1 ];
-			});
-			url += 'set/' + ids.join( ';' ) + '/';
-		}
-
-		return url || null;
-	};
+		  return url || null;
+    },
+    sync: Backbone.TastypieMixin.sync
+  };
 
 	var addSlash = function( str ) {
 		return str + ( ( str.length > 0 && str.charAt( str.length - 1 ) === '/' ) ? '' : '/' );
